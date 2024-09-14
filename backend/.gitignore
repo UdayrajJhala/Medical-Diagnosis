@@ -1,5 +1,5 @@
 # Environment variables
 .env
-
+diagnosis_output.csv
 # Logs
 *.log
