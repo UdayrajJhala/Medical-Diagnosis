@@ -1,22 +1,28 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./App.css"; // You can add this if moving styles to an external CSS file
 
 function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [loading, setLoading] = useState(false); // Loading state
 
   const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
+    setSelectedFiles(event.target.files);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!selectedFile) {
-      alert("Please upload an image file.");
+    if (selectedFiles.length === 0) {
+      alert("Please upload at least one image file.");
       return;
     }
 
+    setLoading(true); // Start loading
+
     const formData = new FormData();
-    formData.append("image", selectedFile);
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append("images", selectedFiles[i]);
+    }
 
     try {
       const response = await axios.post(
@@ -35,19 +41,40 @@ function App() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+
+      setLoading(false); // Stop loading after download
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading images:", error);
       alert("Error extracting diagnosis.");
+      setLoading(false); // Stop loading in case of error
     }
   };
 
   return (
     <div className="App">
-      <h1>Medical Report Diagnosis</h1>
-      <form onSubmit={handleSubmit}>
-        <input type="file" onChange={handleFileChange} />
-        <button type="submit">Upload and Get Diagnosis</button>
-      </form>
+      <div className="container">
+        <h1 className="title">Medical Diagnosis Extractor</h1>
+
+        {/* Show loading spinner if the app is in loading state */}
+        {loading ? (
+          <div className="spinner-container">
+            <div className="spinner"></div>
+            <p>Processing, please wait...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="upload-form">
+            <input
+              type="file"
+              onChange={handleFileChange}
+              multiple
+              className="file-input"
+            />
+            <button type="submit" className="upload-button">
+              Get Diagnosis
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
