@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
-import "./App.css"; // You can add this if moving styles to an external CSS file
+import "./App.css";
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleFileChange = (event) => {
     setSelectedFiles(event.target.files);
@@ -17,7 +18,8 @@ function App() {
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
+    setProgress(0);
 
     const formData = new FormData();
     for (let i = 0; i < selectedFiles.length; i++) {
@@ -29,24 +31,34 @@ function App() {
         "http://127.0.0.1:5000/extract_diagnosis",
         formData,
         {
-          responseType: "blob", // Set responseType to 'blob' for downloading files
+          responseType: "blob",
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setProgress(percentCompleted);
+          },
         }
       );
 
-      // Create a link element to download the CSV file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "diagnosis_output.csv"); // Set the file name
+      link.setAttribute("download", "diagnosis_output.csv");
       document.body.appendChild(link);
       link.click();
       link.remove();
 
-      setLoading(false); // Stop loading after download
+      setLoading(false);
+      setProgress(0);
+      alert("Diagnosis extraction completed successfully!");
     } catch (error) {
       console.error("Error uploading images:", error);
-      alert("Error extracting diagnosis.");
-      setLoading(false); // Stop loading in case of error
+      alert(
+        "Error extracting diagnosis. Please try again with fewer files or contact support."
+      );
+      setLoading(false);
+      setProgress(0);
     }
   };
 
@@ -54,8 +66,6 @@ function App() {
     <div className="App">
       <div className="container">
         <h1 className="title">Medical Diagnosis Extractor</h1>
-
-        {/* Show loading spinner if the app is in loading state */}
         {loading ? (
           <div className="spinner-container">
             <div className="spinner"></div>
