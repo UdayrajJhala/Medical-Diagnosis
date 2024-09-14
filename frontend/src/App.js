@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Papa from "papaparse";
 import "./App.css";
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [csvData, setCsvData] = useState([]);
+  const [csvUrl, setCsvUrl] = useState(null);
 
   const handleFileChange = (event) => {
     setSelectedFiles(event.target.files);
@@ -14,7 +19,7 @@ function App() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (selectedFiles.length === 0) {
-      alert("Please upload at least one image file.");
+      toast.error("Please upload at least one image file.");
       return;
     }
 
@@ -42,19 +47,22 @@ function App() {
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "diagnosis_output.csv");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      setCsvUrl(url);
+
+      // Parse CSV data and set state
+      Papa.parse(response.data, {
+        complete: (result) => {
+          setCsvData(result.data);
+        },
+        header: true,
+      });
 
       setLoading(false);
       setProgress(0);
-      alert("Diagnosis extraction completed successfully!");
+      toast.success("Diagnosis extraction completed successfully!");
     } catch (error) {
       console.error("Error uploading images:", error);
-      alert(
+      toast.error(
         "Error extracting diagnosis. Please try again with fewer files or contact support."
       );
       setLoading(false);
@@ -84,7 +92,39 @@ function App() {
             </button>
           </form>
         )}
+        {csvData.length > 0 && (
+          <div className="csv-table-container">
+            <table className="csv-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Provisional Diagnosis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvData.map((row, index) => (
+                  <tr key={index}>
+                    <td>{row.file_name}</td>
+                    <td>{row.provisional_diagnosis}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {csvUrl && (
+          <div className="csv-container">
+            <a
+              href={csvUrl}
+              download="diagnosis_output.csv"
+              className="download-button"
+            >
+              Download Output
+            </a>
+          </div>
+        )}
       </div>
+      <ToastContainer />
     </div>
   );
 }
